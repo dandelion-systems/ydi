@@ -1,0 +1,94 @@
+yandex-disk(1)                       MISC                       yandex-disk(1)
+
+NAME
+       yandex-disk  -  Command  line utility for Yandex.Disk (http://disk.yan‐
+       dex.com).
+
+OVERVIEW
+       yandex-disk start [OPTION]
+
+       yandex-disk stop [OPTION]
+
+       yandex-disk status [OPTION]
+
+       yandex-disk sync [OPTION]
+
+       yandex-disk token [-p, --password=PASSWORD] [OPTION] USERNAME [FILE]
+
+       yandex-disk publish [OPTION] FILE
+
+       yandex-disk unpublish FILE
+
+DESCRIPTION
+       The Yandex.Disk client console lets you:
+       * synchronize files and folders with your Disk
+       * get public links to files and folders
+       * customize folder syncing
+
+OPTIONS
+       Commands:
+
+              setup - Launch the setup wizard.
+
+              start - Launch as daemon and start syncing folders. The  current
+              sync status is recorded in the file ".sync/status".
+
+              stop - stop daemon.
+
+              status  -  show  daemon  status:  sync  status, errors, recently
+              synced files, disk space status.
+
+              token - receive OAuth token, encode and save  it  in  a  special
+              file  (by default - /.config/yandex-disk/passwd). If the options
+              -p PASSWORD or --password PASSWORD are not shown, then the pass‐
+              word must be entered from STDIN.
+
+              sync - sync the folder and log out (if the  daemon  is  running,
+              wait for syncing to finish).
+
+              publish  -  make  the  file/folder public and remove the link to
+              STDOUT. The item will be copied to the sync folder. Use the  op‐
+              tion --overwrite to rewrite existing items.
+
+              unpublish - removes public access to the file/folder.
+
+       Options:
+
+              --help, -h - displays help.
+
+              --version, -v - displays information about the version.
+
+              --config=FILE,  -c  FILE  -  read options from the configuration
+              file. The file should contain lines in the form name=value.  The
+              default file path ~/.config/yandex-disk/config.cfg.
+
+              --dir=DIR, -d DIR - Yandex.Disk folder path.
+
+              --auth=FILE,  -a FILE - read token from file. The file should be
+              prepared using the token  command.  The  default  file  path  is
+              ~/.config/yandex-disk/passwd.
+
+              --exclude-dirs=DIR1,DIR2,...  - do not sync specified folders.
+
+              --read-only - do not upload local changes to the server. Locally
+              changed files will be renamed.
+
+              --overwrite - overwrite locally changed files in read-only mode.
+
+              --no-daemon,  -D - launch daemon without returning management to
+              console. To  return  management,  daemon  must  be  stopped,  by
+              launching  the command yandex-disk stop in another console or by
+              closing the current console.
+
+              --proxy=PARAM - setup proxy. Allowable parameters:
+              auto - use system proxy settings. These are used by default.
+              no - do not use proxy.
+              protocol,address,port,login,password - set manually.
+              An example of setting proxy manually:
+              proxy=socks4,my.proxy.local,1080,login,password
+
+version 0.1.6.1080                   2019                       yandex-disk(1)
+
+Status ouput:
+
+{'Sync progress': '1.89 KB/ 1.89 KB (100 %)', 'Synchronization core status': 'busy', 'Path to Yandex.Disk directory': "'/home/ruslan/Yandex.Disk'", 'Total': '2.05 TB', 'Used': '648.28 GB', 'Available': '1.42 TB', 'Max file size': '50 GB', 'Trash size': '0 B', 'Last synchronized items': '', 'file': "'Projects/yd-go-master/notify/notify.go'", 'directory': "'Projects/ydi'"}
