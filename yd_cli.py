@@ -19,20 +19,16 @@ class InvalidYDCmd(Exception):
 	pass
 
 class YandexDisk:
-	cli = None
-	"""
-	yandex-disk CLI instance as returned by which yandex-disk
-	"""
+	# yandex-disk CLI instance as returned by which yandex-disk
+	__cli = None
 
+	# yandex-disk status details, e.g. sync core status, last synced files, etc.
+	# Anything except 'idle', 'busy', 'index', 'paused' for SYNC_STATUS indicates an error.
 	__status = {}
-	"""
-	yandex-disk status details, e.g. sync core status, last synced files, etc.
-	Anything except 'idle', 'busy', 'index', 'paused' for SYNC_STATUS indicates an error.
-	"""
 
 	def __init__(self):
-		self.cli = which("yandex-disk")
-		if self.cli is None:
+		self.__cli = which("yandex-disk")
+		if self.__cli is None:
 			raise NoYDCLI
 		return
 
@@ -97,18 +93,18 @@ class YandexDisk:
 			return []
 		
 	def command(self, cmd:str, args:list=[]):
-		cli_cmd = [self.cli, cmd]
+		__cli_cmd = [self.__cli, cmd]
 		match cmd:
 			case "setup":
 				res = ""
-			case ("start" | "stop" | "sync"):
+			case ("start" | "stop" | "sync" | "-v"):
 				try: 
-					res = check_output(cli_cmd).decode("utf-8")
+					res = check_output(__cli_cmd).decode("utf-8")
 				except CalledProcessError as e:
 					res = e.output.decode("utf-8")
 			case "status":
 				try: 
-					res = check_output(cli_cmd).decode("utf-8")
+					res = check_output(__cli_cmd).decode("utf-8")
 				except CalledProcessError as e:
 					res = e.output.decode("utf-8")
 				self.__interpret_status(res)
