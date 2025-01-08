@@ -89,6 +89,3 @@ OPTIONS
 
 version 0.1.6.1080                   2019                       yandex-disk(1)
 
-Status ouput:
-
-{'Sync progress': '1.89 KB/ 1.89 KB (100 %)', 'Synchronization core status': 'busy', 'Path to Yandex.Disk directory': "'/home/ruslan/Yandex.Disk'", 'Total': '2.05 TB', 'Used': '648.28 GB', 'Available': '1.42 TB', 'Max file size': '50 GB', 'Trash size': '0 B', 'Last synchronized items': '', 'file': "'Projects/yd-go-master/notify/notify.go'", 'directory': "'Projects/ydi'"}
