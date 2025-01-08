@@ -1,0 +1,11 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Yandex Disk Indicator
+Comment=Yandex Disk Indicator autostart
+Path=/opt/dandelion.systems/ydi
+Exec=/opt/dandelion.systems/ydi/ydi
+Icon=/opt/dandelion.systems/ydi/Icons/YandexDisk.png
+Terminal=false
+

@@ -1,0 +1,8 @@
+Package: dandelion-ydi
+Version: 1.0
+Architecture: all
+Pre-Depends: gir1.2-ayatanaappindicator3-0.1, gnome-shell-extension-appindicator, gir1.2-gtk-3.0
+Maintainer: Dandelion Systems <dandelion.systems@gmail.com>
+Description: Yandex Disk indicator and control
+Homepage: https://github.com/dandelion-systems/ydi
+
