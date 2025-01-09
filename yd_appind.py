@@ -327,7 +327,7 @@ class YDIndicator:
 		self.__ydm_start_stop.connect("activate", self.on_start_stop)
 		menu.append(self.__ydm_start_stop)
 
-		preferences = Gtk.MenuItem(label="Preferences...")
+		preferences = Gtk.MenuItem(label="Preferences")
 		menu.append(preferences)
 		preferences_sub = Gtk.Menu()
 
