@@ -1,0 +1,147 @@
+# Yandex Disk indicator and control translations
+# Copyright (C) 2025 Dandelion {Systems}
+# This file is distributed under the same license as the dandelion-ydi package.
+# FIRST AUTHOR <dandelion.systems@gmail.com>, 2025.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.1\n"
+"Report-Msgid-Bugs-To: https://github.com/dandelion-systems/ydi/issues\n"
+"POT-Creation-Date: 2025-01-09 14:40+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Dandelion {Systems} <dandelion.systems@gmail.com>\n"
+"Language-Team: Dandelion {Systems} <dandelion.systems@gmail.com>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: yd_appind.py:196
+msgid "Start ⏵"
+msgstr ""
+
+#: yd_appind.py:197
+msgid "Stop ⏹"
+msgstr ""
+
+#: yd_appind.py:287
+msgid "Quota"
+msgstr ""
+
+#: yd_appind.py:290
+msgid "Path to Yandex Disk folder:"
+msgstr ""
+
+#: yd_appind.py:314
+msgid "Recently synced"
+msgstr ""
+
+#: yd_appind.py:317
+msgid "Recently synced files:"
+msgstr ""
+
+#: yd_appind.py:320 yd_appind.py:326 yd_appind.py:635 yd_appind.py:648
+msgid "  (none)"
+msgstr ""
+
+#: yd_appind.py:323
+msgid "Recently synced folders:"
+msgstr ""
+
+#: yd_appind.py:333
+msgid "Start/Stop"
+msgstr ""
+
+#: yd_appind.py:337
+msgid "Preferences"
+msgstr ""
+
+#: yd_appind.py:341
+msgid "Update frequency:"
+msgstr ""
+
+#: yd_appind.py:345
+msgid "Power saver"
+msgstr ""
+
+#: yd_appind.py:351
+msgid "Medium"
+msgstr ""
+
+#: yd_appind.py:356
+msgid "High"
+msgstr ""
+
+#: yd_appind.py:369
+msgid "Icon theme:"
+msgstr ""
+
+#: yd_appind.py:373
+msgid "Follow desktop theme"
+msgstr ""
+
+#: yd_appind.py:379
+msgid "Always white"
+msgstr ""
+
+#: yd_appind.py:384
+msgid "Always black"
+msgstr ""
+
+#: yd_appind.py:401
+msgid "About"
+msgstr ""
+
+#: yd_appind.py:405
+msgid "Exit"
+msgstr ""
+
+#: yd_appind.py:476
+msgid "File Manager not found"
+msgstr ""
+
+#: yd_appind.py:479
+msgid "Nautilus, Thunar and PCManFM file managers are suported, none found"
+msgstr ""
+
+#: yd_appind.py:498
+msgid "Yandex Disk Indicator"
+msgstr ""
+
+#: yd_appind.py:501
+#, python-brace-format
+msgid ""
+"Yandex Disk indicator and control\n"
+"version 1.1\n"
+"© 2025 Dandelion {Systems}\n"
+"\n"
+msgstr ""
+
+#: yd_appind.py:587
+msgid "not running"
+msgstr ""
+
+#: yd_appind.py:598
+msgid "Status: "
+msgstr ""
+
+#: yd_appind.py:606
+msgid "Total: "
+msgstr ""
+
+#: yd_appind.py:610
+msgid "Used: "
+msgstr ""
+
+#: yd_appind.py:614
+msgid "Available: "
+msgstr ""
+
+#: yd_appind.py:618
+msgid "Max file: "
+msgstr ""
+
+#: yd_appind.py:622
+msgid "Trash: "
+msgstr ""

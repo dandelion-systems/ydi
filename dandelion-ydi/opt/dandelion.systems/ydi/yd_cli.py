@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 	This file is part of Yandex Disk indicator and control (YDI).
 
@@ -16,6 +18,7 @@
 
 from shutil import which
 from subprocess import check_output, CalledProcessError
+from os import environ
 
 SYNC_PROG = 'Sync progress'
 SYNC_STATUS = 'Synchronization core status'
@@ -46,7 +49,6 @@ class YandexDisk:
 		self.__cli = which("yandex-disk")
 		if self.__cli is None:
 			raise NoYDCLI
-		return
 
 	def get_sync_status(self):
 		if SYNC_STATUS in self.__status:
@@ -110,17 +112,24 @@ class YandexDisk:
 		
 	def command(self, cmd:str, args:list=[]):
 		__cli_cmd = [self.__cli, cmd]
+
+		# It is essential to set LANG for each call as yandex-disk
+		# starts giving console messages in Russian if the Russian
+		# locale is active
+		env = environ
+		env["LANG"] = "en_US.UTF-8"
+		
 		match cmd:
 			case "setup":
 				res = ""
 			case ("start" | "stop" | "sync" | "-v"):
 				try: 
-					res = check_output(__cli_cmd).decode("utf-8")
+					res = check_output(__cli_cmd, env=env).decode("utf-8")
 				except CalledProcessError as e:
 					res = e.output.decode("utf-8")
 			case "status":
 				try: 
-					res = check_output(__cli_cmd).decode("utf-8")
+					res = check_output(__cli_cmd, env=env).decode("utf-8")
 				except CalledProcessError as e:
 					res = e.output.decode("utf-8")
 				self.__interpret_status(res)
@@ -145,7 +154,7 @@ class YandexDisk:
 				(key, value) = (l, "")
 			key = key.strip("\t").strip()
 			value = value.strip("\t").strip().strip("'")
-			if key in ["file", "directory"]:
+			if key in [YD_LASTFILES, YD_LASTDIRS]:
 				if key in self.__status:
 					self.__status[key].append(value)
 				else:

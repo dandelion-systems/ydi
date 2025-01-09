@@ -18,9 +18,11 @@
 
 set -u
 
+# Register the "keep alive" script in crontab
 NEW_CRON_ENTRY="0 * * * * /opt/dandelion.systems/ydi/yd_keep_alive.sh"
 (crontab -u $SUDO_USER -l; echo "$NEW_CRON_ENTRY" ) | crontab -u $SUDO_USER -
 
+# Configure autostart and lauchpad icon
 THEHOME=$( getent passwd "$SUDO_USER" | cut -d: -f6 )
 
 if [ ! -d $THEHOME/.config/autostart ]; then
@@ -33,4 +35,3 @@ chown $SUDO_USER:$SUDO_USER $THEHOME/.config/autostart/dandelion.ydi.desktop
 
 cp $THEHOME/.config/autostart/dandelion.ydi.desktop $THEHOME/.local/share/applications
 chown $SUDO_USER:$SUDO_USER $THEHOME/.local/share/applications/dandelion.ydi.desktop
-

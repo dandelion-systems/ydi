@@ -18,11 +18,16 @@
 
 set -u
 
+# Remove the "keep alive" crontab entry
 (crontab -u $SUDO_USER -l | grep -v "dandelion.systems/ydi") | crontab -u $SUDO_USER -
 
+# Remove the desktop icon and autostart entry
 THEHOME=$( getent passwd "$SUDO_USER" | cut -d: -f6 )
 
-rm -Rf /opt/dandelion.systems/ydi/
 rm -f $THEHOME/.config/autostart/dandelion.ydi.desktop
 rm -f $THEHOME/.local/share/applications/dandelion.ydi.desktop
+
+# The program folder will have the __pycache__ subfolder.
+# So, force remove it
+rm -Rf /opt/dandelion.systems/ydi/
 
