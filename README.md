@@ -8,7 +8,7 @@ YDI works as an AppIndicator for Yandex Disk activity. The level of control is c
 
 The icon will change to reflect the current status of the syncronization core. Menu items are self explanatory. 
 
-Clicking Yandex Disk folder path will open your file manager at that path. Nautilus, Thunar and PCmanFM are currently supported. 
+Clicking Yandex Disk folder path will open your file manager at that path. Nautilus, Thunar and PCManFM are currently supported. 
 
 Preferences allow changing the status update frequency and icon theme.
 

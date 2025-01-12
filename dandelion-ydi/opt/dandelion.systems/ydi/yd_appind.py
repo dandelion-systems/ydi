@@ -33,7 +33,7 @@ from subprocess import run
 from threading import Thread
 from time import sleep
 from shutil import which
-from subprocess import check_output, CalledProcessError
+from subprocess import check_output, getoutput, CalledProcessError
 import os
 import json
 import locale
@@ -131,7 +131,7 @@ class YDINotUnique(Exception):
 class YDInvalidSettings(Exception):
 	pass
 
-class Settings:
+class YDISettings:
 
 	__sfile = ""
 
@@ -206,6 +206,221 @@ class Settings:
 
 
 
+# Application menu ------------------------------------------
+#
+class YDIMenu(Gtk.Menu):
+	__settings:YDISettings = None
+
+	__ydm_sync_status = None
+	
+	__ydm_quota_sub_path = None
+	__ydm_quota_sub_total = None
+	__ydm_quota_sub_used = None
+	__ydm_quota_sub_available = None
+	__ydm_quota_sub_maxfile = None
+	__ydm_quota_sub_trash = None
+	
+	__ydm_rsynced_sub_files = None
+	__ydm_rsynced_sub_dirs = None
+	__ydm_rsynced_sub = None
+
+	__ydm_start_stop = None
+
+	def __init__(self, ydisettings:YDISettings, menu_actions:dict):
+		super().__init__()
+		self.__settings = ydisettings
+		self.__make_menu(menu_actions)
+
+	def __make_menu(self, ma:dict):
+		self.__ydm_sync_status = Gtk.MenuItem(label="")
+		self.append(self.__ydm_sync_status)
+
+		self.append(Gtk.SeparatorMenuItem.new())
+
+		quota = Gtk.MenuItem(label=_("Quota"))
+		self.append(quota)
+		quota_sub = Gtk.Menu()
+		quota.set_submenu(quota_sub)
+
+		mi = Gtk.MenuItem(label=_("Path to Yandex Disk folder:"))
+		mi.set_sensitive(False)
+		quota_sub.append(mi)
+
+		self.__ydm_quota_sub_path = Gtk.MenuItem(label="")
+		self.__ydm_quota_sub_path.connect("activate", ma["on_ydpath"])
+		quota_sub.append(self.__ydm_quota_sub_path)
+
+		quota_sub.append(Gtk.SeparatorMenuItem.new())
+
+		self.__ydm_quota_sub_total = Gtk.MenuItem(label="")
+		self.__ydm_quota_sub_total.set_sensitive(False)
+		quota_sub.append(self.__ydm_quota_sub_total)
+		self.__ydm_quota_sub_used = Gtk.MenuItem(label="")
+		self.__ydm_quota_sub_used.set_sensitive(False)
+		quota_sub.append(self.__ydm_quota_sub_used)
+		self.__ydm_quota_sub_available = Gtk.MenuItem(label="")
+		self.__ydm_quota_sub_available.set_sensitive(False)
+		quota_sub.append(self.__ydm_quota_sub_available)
+		self.__ydm_quota_sub_maxfile = Gtk.MenuItem(label="")
+		self.__ydm_quota_sub_maxfile.set_sensitive(False)
+		quota_sub.append(self.__ydm_quota_sub_maxfile)
+		self.__ydm_quota_sub_trash = Gtk.MenuItem(label="")
+		self.__ydm_quota_sub_trash.set_sensitive(False)
+		quota_sub.append(self.__ydm_quota_sub_trash)
+
+		rsynced = Gtk.MenuItem(label=_("Recently synced"))
+		self.append(rsynced)
+		self.__ydm_rsynced_sub = Gtk.Menu()
+		rsynced.set_submenu(self.__ydm_rsynced_sub)
+
+		mi = Gtk.MenuItem(label=_("Recently synced files:"))
+		mi.tag = "@m_recent_files"
+		self.__ydm_rsynced_sub.append(mi)
+		mi.set_sensitive(False)
+
+		self.__ydm_rsynced_sub_files = Gtk.MenuItem(label=_("  (none)"))
+		self.__ydm_rsynced_sub_files.tag = "@f"
+		self.__ydm_rsynced_sub_files.set_sensitive(False)
+		self.__ydm_rsynced_sub.append(self.__ydm_rsynced_sub_files)
+
+		mi = Gtk.MenuItem(label=_("Recently synced folders:"))
+		mi.tag = "@m_recent_folders"
+		self.__ydm_rsynced_sub.append(mi)
+		mi.set_sensitive(False)
+
+		self.__ydm_rsynced_sub_dirs = Gtk.MenuItem(label=_("  (none)"))
+		self.__ydm_rsynced_sub_dirs.tag = "@d"
+		self.__ydm_rsynced_sub_dirs.set_sensitive(False)
+		self.__ydm_rsynced_sub.append(self.__ydm_rsynced_sub_dirs)
+
+		self.append(Gtk.SeparatorMenuItem.new())
+
+		self.__ydm_start_stop = Gtk.MenuItem(label=_("Start/Stop"))
+		self.__ydm_start_stop.connect("activate", ma["on_start_stop"])
+		self.append(self.__ydm_start_stop)
+
+		preferences = Gtk.MenuItem(label=_("Preferences"))
+		self.append(preferences)
+		preferences_sub = Gtk.Menu()
+		preferences.set_submenu(preferences_sub)
+
+		mi = Gtk.MenuItem(label=_("Update frequency:"))
+		preferences_sub.append(mi)
+		mi.set_sensitive(False)
+
+		preferences_sub_power = Gtk.RadioMenuItem.new_with_label(group=None, label=_("Power saver"))
+		preferences_sub.append(preferences_sub_power)
+		preferences_sub_power.set_draw_as_radio(False)
+		preferences_sub_power.connect("activate", ma["on_power_saver"])
+		group = preferences_sub_power.get_group()
+
+		preferences_sub_medium = Gtk.RadioMenuItem.new_with_label(group=group, label=_("Medium"))
+		preferences_sub.append(preferences_sub_medium)
+		preferences_sub_medium.set_draw_as_radio(False)
+		preferences_sub_medium.connect("activate", ma["on_medium"])
+
+		preferences_sub_high = Gtk.RadioMenuItem.new_with_label(group=group, label=_("High"))
+		preferences_sub.append(preferences_sub_high)
+		preferences_sub_high.set_draw_as_radio(False)
+		preferences_sub_high.connect("activate", ma["on_high"])
+
+		match self.__settings.get_frequency():
+			case "power_saver":
+				preferences_sub_power.set_active(True)
+			case "medium":
+				preferences_sub_medium.set_active(True)
+			case "high":
+				preferences_sub_high.set_active(True)
+
+		mi = Gtk.MenuItem(label=_("Icon theme:"))
+		preferences_sub.append(mi)
+		mi.set_sensitive(False)
+
+		preferences_sub_themed = Gtk.RadioMenuItem.new_with_label(group=None, label=_("Follow desktop theme"))
+		preferences_sub.append(preferences_sub_themed)
+		preferences_sub_themed.set_draw_as_radio(False)
+		preferences_sub_themed.connect("activate", ma["on_themed"])
+		group = preferences_sub_themed.get_group()
+
+		preferences_sub_white = Gtk.RadioMenuItem.new_with_label(group=group, label=_("Always white"))
+		preferences_sub.append(preferences_sub_white)
+		preferences_sub_white.set_draw_as_radio(False)
+		preferences_sub_white.connect("activate", ma["on_white"])
+
+		preferences_sub_black = Gtk.RadioMenuItem.new_with_label(group=group, label=_("Always black"))
+		preferences_sub.append(preferences_sub_black)
+		preferences_sub_black.set_draw_as_radio(False)
+		preferences_sub_black.connect("activate", ma["on_black"])
+
+		match self.__settings.get_icon_theme():
+			case "themed":
+				preferences_sub_themed.set_active(True)
+			case "white":
+				preferences_sub_white.set_active(True)
+			case "black":
+				preferences_sub_black.set_active(True)
+
+		self.append(Gtk.SeparatorMenuItem.new())
+
+		mi = Gtk.MenuItem(label=_("About"))
+		mi.connect("activate", ma["on_about"])
+		self.append(mi)
+
+		mi = Gtk.MenuItem(label=_("Exit"))
+		mi.connect("activate", ma["on_quit"])
+		self.append(mi)
+
+	def get_label(self, item:str):
+		match item:
+			case "start_stop":
+				return self.__ydm_start_stop.get_label()
+			case "sync_status":
+				return self.__ydm_sync_status.get_label()
+			case "path":
+				return self.__ydm_quota_sub_path.get_label()
+			case "total":
+				return self.__ydm_quota_sub_total.get_label()
+			case "used":
+				return self.__ydm_quota_sub_used.get_label()
+			case "available":
+				return self.__ydm_quota_sub_available.get_label()
+			case "maxfile":
+				return self.__ydm_quota_sub_maxfile.get_label()
+			case "trash":
+				return self.__ydm_quota_sub_trash.get_label()
+
+	def set_label(self, item:str, label:str):
+		match item:
+			case "start_stop":
+				self.__ydm_start_stop.set_label(label)
+			case "sync_status":
+				self.__ydm_sync_status.set_label(label)
+			case "path":
+				self.__ydm_quota_sub_path.set_label(label)
+			case "total":
+				self.__ydm_quota_sub_total.set_label(label)
+			case "used":
+				self.__ydm_quota_sub_used.set_label(label)
+			case "available":
+				self.__ydm_quota_sub_available.set_label(label)
+			case "maxfile":
+				self.__ydm_quota_sub_maxfile.set_label(label)
+			case "trash":
+				self.__ydm_quota_sub_trash.set_label(label)
+
+	def get_rsynced_submenu(self):
+		return self.__ydm_rsynced_sub
+	
+	def get_rsynced(self, tag_to_search:str):
+		tagged_items = []
+		for mi in self.__ydm_rsynced_sub.get_children():
+			l = len(mi.tag)
+			if mi.tag.find(tag_to_search) == 0 and l > 2: # All MenuItems here MUST have a tag
+				tagged_items.append(mi.tag[2:l])
+		return tagged_items
+
+
+
 # Main application ------------------------------------------
 #
 
@@ -220,26 +435,14 @@ UPDATE_INTERVAL_HG = 1
 
 class YDIndicator:
 	# yandex-disk CLI interface
-	__disk = None
+	__disk:YandexDisk = None
 	
 	# AppIndicator instance
-	__indicator = None
+	__indicator:AppIndicator = None
 
 	# Gtk AppIndicator menu. Menu items below will change content 
 	# dynamically to reflect the status of syncing
-	__ydm_sync_status = None
-	
-	__ydm_quota_sub_path = None
-	__ydm_quota_sub_total = None
-	__ydm_quota_sub_used = None
-	__ydm_quota_sub_available = None
-	__ydm_quota_sub_maxfile = None
-	__ydm_quota_sub_trash = None
-	
-	__ydm_rsynced_sub_files = None
-	__ydm_rsynced_sub_dirs = None
-
-	__ydm_start_stop = None
+	__menu:YDIMenu = None
 
 	# Status updater thread
 	__updater = None
@@ -248,7 +451,7 @@ class YDIndicator:
 	__monitoring = False
 
 	# Settings
-	__settings:Settings = None
+	__settings:YDISettings = None
 
 
 	def __init__(self, disk:YandexDisk=None):
@@ -268,162 +471,49 @@ class YDIndicator:
 		# In case they are corrupt, we silently revert to defaults
 		try:
 			cfg_file = os.path.expanduser("~") + "/.config/yandex-disk/ydi.cfg"
-			self.__settings = Settings(cfg_file)
+			self.__settings = YDISettings(cfg_file)
 		except YDInvalidSettings:
 			pass
 
 		# YD status indicator and control
 		self.__indicator = AppIndicator.Indicator.new(
-			APPINDICATOR_ID, "YDNormal.png", AppIndicator.IndicatorCategory.SYSTEM_SERVICES
+			APPINDICATOR_ID, "YDNormal.png", 
+			AppIndicator.IndicatorCategory.SYSTEM_SERVICES
 			)
 		self.__indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
 
-		# YD themed icons
-		Gtk.Settings.get_default().connect("notify::gtk-theme-name", self.on_theme_name_changed)
-		self.on_theme_name_changed(Gtk.Settings.get_default(), None)
-
 		# YD control menu
-		self.__make_menu()
+		menu_actions = {
+			"on_ydpath": self.on_ydpath,
+			"on_start_stop": self.on_start_stop,
+			"on_power_saver": self.on_power_saver,
+			"on_medium": self.on_medium,
+			"on_high": self.on_high,
+			"on_themed": self.on_themed,
+			"on_white": self.on_white,
+			"on_black": self.on_black,
+			"on_about": self.on_about,
+			"on_quit": self.on_quit
+		}
+
+		self.__menu = YDIMenu(
+			ydisettings=self.__settings, 
+			menu_actions=menu_actions
+			)
+		self.__indicator.set_menu(self.__menu)
+		self.__menu.show_all()
+
+		# YD themed icons
+		Gtk.Settings.get_default().connect(
+			"notify::gtk-theme-name", 
+			self.on_theme_name_changed
+			)
+		self.on_theme_name_changed(Gtk.Settings.get_default(), None)
 
 		# Start getting regular status updates
 		self.monitor()
 
-		Gtk.main()
-		return
-	
-	def __make_menu(self):
-
-		menu = Gtk.Menu()
-		self.__indicator.set_menu(menu)
-
-		self.__ydm_sync_status = Gtk.MenuItem(label="")
-		menu.append(self.__ydm_sync_status)
-
-		menu.append(Gtk.SeparatorMenuItem.new())
-
-		quota = Gtk.MenuItem(label=_("Quota"))
-		menu.append(quota)
-		quota_sub = Gtk.Menu()
-		mi = Gtk.MenuItem(label=_("Path to Yandex Disk folder:"))
-		quota_sub.append(mi)
-		mi.set_sensitive(False)
-		self.__ydm_quota_sub_path = Gtk.MenuItem(label="")
-		self.__ydm_quota_sub_path.connect("activate", self.on_ydpath_activate)
-		quota_sub.append(self.__ydm_quota_sub_path)
-		quota_sub.append(Gtk.SeparatorMenuItem.new())
-		self.__ydm_quota_sub_total = Gtk.MenuItem(label="")
-		self.__ydm_quota_sub_total.set_sensitive(False)
-		quota_sub.append(self.__ydm_quota_sub_total)
-		self.__ydm_quota_sub_used = Gtk.MenuItem(label="")
-		self.__ydm_quota_sub_used.set_sensitive(False)
-		quota_sub.append(self.__ydm_quota_sub_used)
-		self.__ydm_quota_sub_available = Gtk.MenuItem(label="")
-		self.__ydm_quota_sub_available.set_sensitive(False)
-		quota_sub.append(self.__ydm_quota_sub_available)
-		self.__ydm_quota_sub_maxfile = Gtk.MenuItem(label="")
-		self.__ydm_quota_sub_maxfile.set_sensitive(False)
-		quota_sub.append(self.__ydm_quota_sub_maxfile)
-		self.__ydm_quota_sub_trash = Gtk.MenuItem(label="")
-		self.__ydm_quota_sub_trash.set_sensitive(False)
-		quota_sub.append(self.__ydm_quota_sub_trash)
-		quota.set_submenu(quota_sub)
-
-		rsynced = Gtk.MenuItem(label=_("Recently synced"))
-		menu.append(rsynced)
-		rsynced_sub = Gtk.Menu()
-		mi = Gtk.MenuItem(label=_("Recently synced files:"))
-		rsynced_sub.append(mi)
-		mi.set_sensitive(False)
-		self.__ydm_rsynced_sub_files = Gtk.MenuItem(label=_("  (none)"))
-		self.__ydm_rsynced_sub_files.set_sensitive(False)
-		rsynced_sub.append(self.__ydm_rsynced_sub_files)
-		mi = Gtk.MenuItem(label=_("Recently synced folders:"))
-		rsynced_sub.append(mi)
-		mi.set_sensitive(False)
-		self.__ydm_rsynced_sub_dirs = Gtk.MenuItem(label=_("  (none)"))
-		self.__ydm_rsynced_sub_dirs.set_sensitive(False)
-		rsynced_sub.append(self.__ydm_rsynced_sub_dirs)
-		rsynced.set_submenu(rsynced_sub)
-
-		menu.append(Gtk.SeparatorMenuItem.new())
-
-		self.__ydm_start_stop = Gtk.MenuItem(label=_("Start/Stop"))
-		self.__ydm_start_stop.connect("activate", self.on_start_stop)
-		menu.append(self.__ydm_start_stop)
-
-		preferences = Gtk.MenuItem(label=_("Preferences"))
-		menu.append(preferences)
-		preferences_sub = Gtk.Menu()
-
-		mi = Gtk.MenuItem(label=_("Update frequency:"))
-		preferences_sub.append(mi)
-		mi.set_sensitive(False)
-
-		preferences_sub_power = Gtk.RadioMenuItem.new_with_label(group=None, label=_("Power saver"))
-		preferences_sub.append(preferences_sub_power)
-		preferences_sub_power.set_draw_as_radio(False)
-		preferences_sub_power.connect("activate", self.on_power_saver)
-		group = preferences_sub_power.get_group()
-
-		preferences_sub_medium = Gtk.RadioMenuItem.new_with_label(group=group, label=_("Medium"))
-		preferences_sub.append(preferences_sub_medium)
-		preferences_sub_medium.set_draw_as_radio(False)
-		preferences_sub_medium.connect("activate", self.on_medium)
-
-		preferences_sub_high = Gtk.RadioMenuItem.new_with_label(group=group, label=_("High"))
-		preferences_sub.append(preferences_sub_high)
-		preferences_sub_high.set_draw_as_radio(False)
-		preferences_sub_high.connect("activate", self.on_high)
-
-		match self.__settings.get_frequency():
-			case "power_saver":
-				preferences_sub_power.set_active(True)
-			case "medium":
-				preferences_sub_medium.set_active(True)
-			case "high":
-				preferences_sub_high.set_active(True)
-
-		mi = Gtk.MenuItem(label=_("Icon theme:"))
-		preferences_sub.append(mi)
-		mi.set_sensitive(False)
-
-		preferences_sub_themed = Gtk.RadioMenuItem.new_with_label(group=None, label=_("Follow desktop theme"))
-		preferences_sub.append(preferences_sub_themed)
-		preferences_sub_themed.set_draw_as_radio(False)
-		preferences_sub_themed.connect("activate", self.on_themed)
-		group = preferences_sub_themed.get_group()
-
-		preferences_sub_white = Gtk.RadioMenuItem.new_with_label(group=group, label=_("Always white"))
-		preferences_sub.append(preferences_sub_white)
-		preferences_sub_white.set_draw_as_radio(False)
-		preferences_sub_white.connect("activate", self.on_white)
-
-		preferences_sub_black = Gtk.RadioMenuItem.new_with_label(group=group, label=_("Always black"))
-		preferences_sub.append(preferences_sub_black)
-		preferences_sub_black.set_draw_as_radio(False)
-		preferences_sub_black.connect("activate", self.on_black)
-
-		match self.__settings.get_icon_theme():
-			case "themed":
-				preferences_sub_themed.set_active(True)
-			case "white":
-				preferences_sub_white.set_active(True)
-			case "black":
-				preferences_sub_black.set_active(True)
-
-		preferences.set_submenu(preferences_sub)
-
-		menu.append(Gtk.SeparatorMenuItem.new())
-
-		mi = Gtk.MenuItem(label=_("About"))
-		mi.connect("activate", self.on_about)
-		menu.append(mi)
-
-		mi = Gtk.MenuItem(label=_("Exit"))
-		mi.connect("activate", self.on_quit)
-		menu.append(mi)
-
-		menu.show_all()
+		Gtk.main()	
 	
 	def on_power_saver(self, source):
 		self.__settings.set_frequency("power_saver")
@@ -462,45 +552,39 @@ class YDIndicator:
 		self.on_theme_name_changed(Gtk.Settings.get_default(), None)
 
 	def on_theme_name_changed(self, settings, gparam):
-		cwd = os.getcwd()
+		iconpath = self.get_icons_path()
 		match self.__settings.get_icon_theme():
 			case "themed":
 				theme = settings.get_property("gtk-theme-name")
 				if theme.find("dark") < 0 and theme.find("Dark") < 0:
 					# Light theme
-					self.__indicator.set_icon_theme_path(cwd + "/Icons/Light_Theme")
+					GLib.idle_add(
+						self.__indicator.set_icon_theme_path,
+						iconpath + "Light_Theme"
+					)
 				else:
 					# Dark theme
-					self.__indicator.set_icon_theme_path(cwd + "/Icons/Dark_Theme")
+					GLib.idle_add(
+						self.__indicator.set_icon_theme_path,
+						iconpath + "Dark_Theme"
+					)
 			case "white":
-				self.__indicator.set_icon_theme_path(cwd + "/Icons/Dark_Theme")
+				GLib.idle_add(
+					self.__indicator.set_icon_theme_path,
+					iconpath + "Dark_Theme"
+				)
 			case "black":
-				self.__indicator.set_icon_theme_path(cwd + "/Icons/Light_Theme")
+				GLib.idle_add(
+					self.__indicator.set_icon_theme_path,
+					iconpath + "Light_Theme"
+				)
 	
-	def on_ydpath_activate(self, source):
-		fm = which("nautilus")
-		if fm is None:
-			fm = which("thunar")
-		if fm is None:
-			fm = which("pcmanfm")
-		if fm is not None:
-			run([fm, self.__disk.get_yd_path()])
-		else:
-			dialog = Gtk.MessageDialog(
-				flags=0,
-				message_type=Gtk.MessageType.WARNING,
-				buttons=Gtk.ButtonsType.OK,
-				text=_("File Manager not found"),
-				)
-			dialog.format_secondary_text(
-				_("Nautilus, Thunar and PCManFM file managers are suported, none found")
-				)
-			dialog.run()
-			dialog.destroy()
+	def on_ydpath(self, source):
+		self.__open_fm(self.__disk.get_yd_path())
 	
 	def on_start_stop(self, source):
 		self.desist()
-		if self.__ydm_start_stop.get_label() == START_LABEL:
+		if self.__menu.get_label("start_stop") == START_LABEL:
 			self.__disk.command("start")
 		else: # STOP_LABEL
 			self.__disk.command("stop")
@@ -525,6 +609,14 @@ class YDIndicator:
 		remove_pid_file()
 		Gtk.main_quit()
 
+	def get_icons_path(self):
+		loclist = getoutput("dpkg -L dandelion-ydi | grep Icons")
+		try:
+			(iconpath,_) = loclist.splitlines()[0].split(sep="Icons") + "Icons/"
+		except:
+			iconpath = "/opt/dandelion.systems/ydi/Icons/"
+		return iconpath
+
 	def monitor(self):
 		match self.__settings.get_frequency():
 			case "power_saver":
@@ -548,129 +640,219 @@ class YDIndicator:
 		self.__monitoring = False
 		self.__updater.join()
 
-	def set_property(self, what:str, value):
-		match what:
-			case "icon":
-				funct = self.__indicator.set_icon
-			case "status":
-				funct = self.__ydm_sync_status.set_label
-			case "path":
-				funct = self.__ydm_quota_sub_path.set_label
-			case "total":
-				funct = self.__ydm_quota_sub_total.set_label
-			case "used":
-				funct = self.__ydm_quota_sub_used.set_label
-			case "available":
-				funct = self.__ydm_quota_sub_available.set_label
-			case "maxfile":
-				funct = self.__ydm_quota_sub_maxfile.set_label
-			case "trash":
-				funct = self.__ydm_quota_sub_trash.set_label
-			case "rfiles":
-				funct = self.__ydm_rsynced_sub_files.set_label
-			case "rdirs":
-				funct = self.__ydm_rsynced_sub_dirs.set_label
-			case "action":
-				funct = self.__ydm_start_stop.set_label
-			case _:
-				return
+	def on_rcfile(self, source):
+		yd_path = self.__disk.get_yd_path()
+		file_folder = os.path.dirname(source.tag[2:len(source.tag)])
+		self.__open_fm(os.path.join(yd_path, file_folder))
+
+	def on_rcfolder(self, source):
+		yd_path = self.__disk.get_yd_path()
+		self.__open_fm(
+			os.path.join(yd_path, source.tag[2:len(source.tag)])
+		)
+
+	def __open_fm(self, dir_path:str):
+		fm = which("nautilus")
+		if fm is None:
+			fm = which("thunar")
+		if fm is None:
+			fm = which("pcmanfm")
+		if fm is not None:
+			run([fm, dir_path])
+		else:
+			dialog = Gtk.MessageDialog(
+				flags=0,
+				message_type=Gtk.MessageType.WARNING,
+				buttons=Gtk.ButtonsType.OK,
+				text=_("File Manager not found"),
+				)
+			dialog.format_secondary_text(
+				_("Nautilus, Thunar and PCManFM file managers are suported, none found")
+				)
+			dialog.run()
+			dialog.destroy()
+
+	def __do_updates(self, updates:dict):
+		def make_mi_label(s:str, l:int=37):
+			if len(s) > l:
+				s = "  " + s[0:int((l-7)/2)] + " ... " + s[-int((l-7)/2):]
+			else:
+				s = "  " + s
+			return s
 		
-		GLib.idle_add(funct, value, priority=GLib.PRIORITY_LOW)
+		for what in updates:
+			match what:
+				case "icon":
+					self.__indicator.set_icon(updates[what])
+
+				case ("sync_status" | "path" | "total" | "used" |
+				      "available" | "maxfile" | "trash" | "start_stop"):
+					self.__menu.set_label(what, updates[what])
+
+				case ("rfiles" | "rdirs"):
+					# Sanity check
+					value = updates[what]
+					if not isinstance(value, list):
+						raise ValueError
+					
+					# Are we updating the list of files or folders?
+					tag_to_search = (
+						lambda x: {True:"@f", False:"@d"}[x=="rfiles"]
+						)(what)
+
+					# The submenu to update
+					rsynced_submenu = self.__menu.get_rsynced_submenu()
+					
+					# Destroy all the recent files or folders listed on the menu
+					# These ones will have a tag starting with `@f` or `@d` followed 
+					# by a file or folder path relative to the Yandex Disk folder
+					for mi in rsynced_submenu.get_children():
+						if mi.tag.find(tag_to_search) == 0:
+							mi.destroy()
+
+					# Determine the staring position where 
+					# the new list will be inserted to	
+					pos = 0
+					rfiles_start_pos = 0
+					rdirs_start_pos = 0
+					for mi in rsynced_submenu.get_children():
+						if mi.tag == "@m_recent_files":
+							rfiles_start_pos = pos + 1
+						elif mi.tag == "@m_recent_folders":
+							rdirs_start_pos = pos + 1
+						pos = pos + 1
+
+					# We will insert/update the menu items with recent 
+					# files or folders staring from `pos` as position pos-1 is 
+					# occupied by `Recently synced files/folders:` menu item
+					pos = (
+						lambda x: {True:rfiles_start_pos, False:rdirs_start_pos}[x=="rfiles"]
+						)(what)
+					starting_pos = pos
+
+					# This will be the function triggered at menuitem activation 
+					activation_funct = (
+						lambda x: {True:self.on_rcfile, False:self.on_rcfolder}[x=="rfiles"]
+						)(what)
+
+					# Update menu items
+					for name_on_list in value:
+						mi = Gtk.MenuItem(label=make_mi_label(name_on_list))
+						mi.tag = tag_to_search + name_on_list
+						mi.connect("activate", activation_funct)
+						rsynced_submenu.insert(mi, pos)
+						pos = pos + 1
+
+					# Finally: if pos is still at `starting_pos`, 
+					# the `value` list was empty and we need 
+					# to create a `  (none)` item
+					if pos == starting_pos:
+						none_item = Gtk.MenuItem(label=_("  (none)"))
+						none_item.tag = tag_to_search
+						none_item.set_sensitive(False)
+						rsynced_submenu.insert(none_item, starting_pos)
+		
+		# Update the visual representation of the menu
+		if "rfiles" in updates or "rdirs" in updates:
+			rsynced_submenu.show_all()
+
+		return False
 
 	def __update_worker(self, interval:float):
-		log("Update interval is {:.2f} seconds\n".format(interval))
 		while self.__monitoring:
+			update_actions = {}
+			
+			old_icon        = self.__indicator.get_icon()
+			old_start_stop  = self.__menu.get_label("start_stop")
+			old_sync_status = self.__menu.get_label("sync_status")
+			old_path        = self.__menu.get_label("path")
+			old_total       = self.__menu.get_label("total")
+			old_used        = self.__menu.get_label("used")
+			old_available   = self.__menu.get_label("available")
+			old_maxfile     = self.__menu.get_label("maxfile")
+			old_trash       = self.__menu.get_label("trash")
+			old_files       = self.__menu.get_rsynced("@f")
+			old_dirs        = self.__menu.get_rsynced("@d")
+
 			self.__disk.command("status")
+			new_sync_status = self.__disk.get_sync_status()
 			
-			sync_status = self.__disk.get_sync_status()
-			old_icon    = self.__indicator.get_icon()
-			old_action  = self.__ydm_start_stop.get_label()
-			new_action  = STOP_LABEL
-			
-			match sync_status:
+			match new_sync_status:
 				case "idle": 
 					new_icon = "YDNormal.png"
-					sync_status = _("idle")
+					new_start_stop  = STOP_LABEL
+					new_sync_status = _("idle")
 				case "busy": 
 					new_icon = "YDSync.png"
-					sync_status = _("busy")
+					new_start_stop  = STOP_LABEL
+					new_sync_status = _("busy")
 				case "index": 
 					new_icon = "YDSync.png"
-					sync_status = _("index")
+					new_start_stop  = STOP_LABEL
+					new_sync_status = _("index")
 				case "paused": 
 					new_icon = "YDPaused.png"
-					sync_status = _("paused")
+					new_start_stop  = STOP_LABEL
+					new_sync_status = _("paused")
 				case "error": 
 					new_icon = "YDError.png"
-					sync_status = _("error")
+					new_start_stop  = STOP_LABEL
+					new_sync_status = _("error")
 				case _: 
 					new_icon = "YDDisconnect.png"
-					new_action = START_LABEL
-					sync_status = _("not running")
+					new_start_stop = START_LABEL
+					new_sync_status = _("not running")
 			
 			if old_icon != new_icon:
-				self.set_property("icon", new_icon)
+				update_actions["icon"] = new_icon
 				
-			if old_action != new_action:
-				self.set_property("action", new_action)
+			if old_start_stop != new_start_stop:
+				update_actions["start_stop"] = new_start_stop
 
-			sync_prog = self.__disk.get_sync_prog()
-			if sync_prog != "":
-				sync_status += "\n" + sync_prog
-			sync_status = _("Status: ") + sync_status
-			if sync_status != self.__ydm_sync_status.get_label():
-				self.set_property("status", sync_status)
+			l = self.__disk.get_sync_prog()
+			if l != "":
+				new_sync_status += "\n" + l
+			new_sync_status = _("Status: ") + new_sync_status
+			if new_sync_status != old_sync_status:
+				update_actions["sync_status"] = new_sync_status
 
 			l = self.__disk.get_yd_path()
-			if l != self.__ydm_quota_sub_path.get_label():
-				self.set_property("path", l)
+			if l != old_path:
+				update_actions["path"] = l
 
 			l = _("Total: ") + self.__disk.get_yd_total()
-			if l != self.__ydm_quota_sub_total.get_label():
-				self.set_property("total", l)
+			if l != old_total:
+				update_actions["total"] = l
 				
 			l = _("Used: ") + self.__disk.get_yd_used()
-			if l != self.__ydm_quota_sub_used.get_label():
-				self.set_property("used", l)
+			if l != old_used:
+				update_actions["used"] = l
 				
 			l = _("Available: ") + self.__disk.get_yd_available()
-			if l != self.__ydm_quota_sub_available.get_label():
-				self.set_property("available", l)
+			if l != old_available:
+				update_actions["available"] = l
 				
 			l = _("Max file: ") + self.__disk.get_yd_maxfile()
-			if l != self.__ydm_quota_sub_maxfile.get_label():
-				self.set_property("maxfile", l)
+			if l != old_maxfile:
+				update_actions["maxfile"] = l
 				
 			l = _("Trash: ") + self.__disk.get_yd_trash()
-			if l != self.__ydm_quota_sub_trash.get_label():
-				self.set_property("trash", l)
+			if l != old_trash:
+				update_actions["trash"] = l
 
-			nf = []
-			for f in self.__disk.get_yd_lastfiles():
-				if len(f) > 47:
-					f = "  " + f[0:20] + " ... " + f[-20:]
-				else:
-					f = "  " + f
-				nf.append(f)
-			nfstr = "\n".join(nf)
-			if nfstr == "":
-				nfstr = _("  (none)")
-			if nfstr != self.__ydm_rsynced_sub_files.get_label():
-				self.set_property("rfiles", nfstr)
+			new_files = self.__disk.get_yd_lastfiles()
+			if new_files != old_files:
+				update_actions["rfiles"] = new_files
 
-			nf = []
-			for f in self.__disk.get_yd_lastdirs():
-				if len(f) > 47:
-					f = "  " + f[0:20] + " ... " + f[-20:]
-				else:
-					f = "  " + f
-				nf.append(f)
-			nfstr = "\n".join(nf)
-			if nfstr == "":
-				nfstr = _("  (none)")
-			if nfstr != self.__ydm_rsynced_sub_dirs.get_label():
-				self.set_property("rdirs", nfstr)
+			new_dirs = self.__disk.get_yd_lastdirs()
+			if new_dirs != old_dirs:
+				update_actions["rdirs"] = new_dirs
+
+			if update_actions != {}:
+				GLib.idle_add(
+					self.__do_updates,
+					update_actions,
+					priority=GLib.PRIORITY_HIGH
+				)
 
 			sleep(interval)
-
-
