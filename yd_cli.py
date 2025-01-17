@@ -38,11 +38,14 @@ class InvalidYDCmd(Exception):
 	pass
 
 class YandexDisk:
-	# yandex-disk CLI instance as returned by which yandex-disk
+	# yandex-disk CLI instance as returned by 
+	# `which yandex-disk`
 	__cli = None
 
-	# yandex-disk status details, e.g. sync core status, last synced files, etc.
-	# Anything except 'idle', 'busy', 'index', 'paused' for SYNC_STATUS indicates an error.
+	# yandex-disk status details, e.g. sync core status, 
+	# last synced files, etc.
+	# Anything except 'idle', 'busy', 'index', 'paused' 
+	# for SYNC_STATUS indicates an error.
 	__status = {}
 
 	def __init__(self):
@@ -111,26 +114,30 @@ class YandexDisk:
 			return []
 		
 	def command(self, cmd:str, args:list=[]):
-		__cli_cmd = [self.__cli, cmd]
+		cli_cmd = [self.__cli, cmd]
 
 		# It is essential to set LANG for each call as yandex-disk
 		# starts giving console messages in Russian if the Russian
-		# locale is active
+		# locale is active. The C locale is always available
 		env = environ
-		env["LANG"] = "en_US.UTF-8"
+		env["LANG"] = "C.UTF-8"
 		
 		match cmd:
 			case "setup":
 				res = ""
 			case ("start" | "stop" | "sync" | "-v"):
 				try: 
-					res = check_output(__cli_cmd, env=env).decode("utf-8")
+					res = check_output(cli_cmd, env=env).decode("utf-8")
 				except CalledProcessError as e:
 					res = e.output.decode("utf-8")
 			case "status":
 				try: 
-					res = check_output(__cli_cmd, env=env).decode("utf-8")
+					res = check_output(cli_cmd, env=env).decode("utf-8")
 				except CalledProcessError as e:
+					# The result in this case is really unused now.
+					# Being unable to interpret the status, YDIndicator
+					# will fall back to displaying a gray `disconnected`
+					# state icon
 					res = e.output.decode("utf-8")
 				self.__interpret_status(res)
 			case "token":

@@ -552,32 +552,33 @@ class YDIndicator:
 		self.on_theme_name_changed(Gtk.Settings.get_default(), None)
 
 	def on_theme_name_changed(self, settings, gparam):
-		iconpath = self.get_icons_path()
+		iconpath = self.get_icon_path()
 		match self.__settings.get_icon_theme():
 			case "themed":
 				theme = settings.get_property("gtk-theme-name")
 				if theme.find("dark") < 0 and theme.find("Dark") < 0:
 					# Light theme
-					GLib.idle_add(
-						self.__indicator.set_icon_theme_path,
-						iconpath + "Light_Theme"
-					)
+					iconpath = os.path.join(iconpath, "Light_Theme")
+					
 				else:
 					# Dark theme
-					GLib.idle_add(
-						self.__indicator.set_icon_theme_path,
-						iconpath + "Dark_Theme"
-					)
+					iconpath = os.path.join(iconpath, "Dark_Theme")
+					
 			case "white":
-				GLib.idle_add(
-					self.__indicator.set_icon_theme_path,
-					iconpath + "Dark_Theme"
-				)
+				# `Always white` icons theme
+				iconpath = os.path.join(iconpath, "Dark_Theme")
+				
 			case "black":
-				GLib.idle_add(
-					self.__indicator.set_icon_theme_path,
-					iconpath + "Light_Theme"
-				)
+				# `Always black` icons theme
+				iconpath = os.path.join(iconpath, "Light_Theme")
+				
+			case _:
+				return
+
+		GLib.idle_add(
+			self.__indicator.set_icon_theme_path,
+			iconpath
+		)
 	
 	def on_ydpath(self, source):
 		self.__open_fm(self.__disk.get_yd_path())
@@ -609,12 +610,12 @@ class YDIndicator:
 		remove_pid_file()
 		Gtk.main_quit()
 
-	def get_icons_path(self):
+	def get_icon_path(self):
 		loclist = getoutput("dpkg -L dandelion-ydi | grep Icons")
 		try:
-			(iconpath,_) = loclist.splitlines()[0].split(sep="Icons") + "Icons/"
+			(iconpath,_) = loclist.splitlines()[0].split(sep="Icons") + "Icons" # /
 		except:
-			iconpath = "/opt/dandelion.systems/ydi/Icons/"
+			iconpath = os.path.join(os.getcwd(), "Icons") # the default is "/opt/dandelion.systems/ydi/Icons/"
 		return iconpath
 
 	def monitor(self):
@@ -632,7 +633,10 @@ class YDIndicator:
 		# Use desist() to stop
 		if not self.__monitoring:
 			self.__monitoring = True
-			self.__updater = Thread(target=self.__update_worker, args=(interval,))
+			self.__updater = Thread(
+				target=self.__update_worker, 
+				args=(interval,)
+			)
 			self.__updater.start()
 
 	def desist(self):
@@ -752,9 +756,8 @@ class YDIndicator:
 						none_item.set_sensitive(False)
 						rsynced_submenu.insert(none_item, starting_pos)
 		
-		# Update the visual representation of the menu
-		if "rfiles" in updates or "rdirs" in updates:
-			rsynced_submenu.show_all()
+					# Update the visual representation of the menu
+					rsynced_submenu.show_all()
 
 		return False
 
@@ -798,7 +801,7 @@ class YDIndicator:
 					new_icon = "YDError.png"
 					new_start_stop  = STOP_LABEL
 					new_sync_status = _("error")
-				case _: 
+				case _: # either stopped or in `no internet access` state
 					new_icon = "YDDisconnect.png"
 					new_start_stop = START_LABEL
 					new_sync_status = _("not running")
